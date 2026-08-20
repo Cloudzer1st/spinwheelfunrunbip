@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spin Wheel - Pixar 3D #RetroRewind</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Press+Start+2P&family=Righteous&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: 'Righteous', cursive;
+      background-image: url('https://res.cloudinary.com/dktwbdl1t/image/upload/v1787136584/Gemini_Generated_Image_a8nwula8nwula8nw_aafipi.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+      color: #00f6ff;
+    }
+
+    .neon-glow-left, .neon-glow-right {
+      position: absolute;
+      top: 50%;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      z-index: 1;
+      filter: blur(90px);
+      opacity: 0.75;
+      animation: neonShift 6s infinite alternate ease-in-out;
+    }
+    .neon-glow-left { left: -200px; }
+    .neon-glow-right { right: -200px; animation-delay: -3s; }
+
+    @keyframes neonShift {
+      0% { background: radial-gradient(circle, rgba(255,0,127,0.8) 0%, transparent 70%); }
+      33% { background: radial-gradient(circle, rgba(0,246,255,0.8) 0%, transparent 70%); }
+      66% { background: radial-gradient(circle, rgba(255,230,0,0.8) 0%, transparent 70%); }
+      100% { background: radial-gradient(circle, rgba(123,44,191,0.8) 0%, transparent 70%); }
+    }
+
+    .spotlight-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .spotlight-left, .spotlight-right {
+      position: absolute;
+      width: 120vw;
+      height: 250px;
+      top: -100px;
+      opacity: 0.8;
+      filter: blur(15px);
+      transform-origin: top center;
+    }
+    .spotlight-left {
+      left: -20vw;
+      background: conic-gradient(from 120deg at 20% 0%, rgba(255, 0, 127, 0.8), rgba(0, 246, 255, 0.8), transparent 60deg);
+      animation: spotSearchLeft 2s infinite alternate ease-in-out;
+    }
+    .spotlight-right {
+      right: -20vw;
+      background: conic-gradient(from 180deg at 80% 0%, rgba(255, 230, 0, 0.8), rgba(255, 0, 127, 0.8), transparent 60deg);
+      animation: spotSearchRight 2s infinite alternate ease-in-out;
+    }
+
+    @keyframes spotSearchLeft {
+      0% { transform: rotate(-25deg); }
+      100% { transform: rotate(15deg); }
+    }
+    @keyframes spotSearchRight {
+      0% { transform: rotate(25deg); }
+      100% { transform: rotate(-15deg); }
+    }
+
+    .retro-panel {
+      background: rgba(20, 5, 45, 0.95);
+      border: 4px solid #ff007f;
+      box-shadow: 0 0 25px #ff007f, inset 0 0 15px rgba(255, 0, 127, 0.3);
+      border-radius: 16px;
+      overflow: visible !important;
+    }
+
+    .winner-card-glow {
+      animation: cardPulse 1.2s infinite alternate ease-in-out;
+    }
+    @keyframes cardPulse {
+      0% { box-shadow: 0 0 30px #00f6ff, 0 0 60px #ff007f; transform: scale(1); }
+      100% { box-shadow: 0 0 60px #ffe600, 0 0 90px #ff007f; transform: scale(1.03); }
+    }
+
+    .font-script { font-family: 'Pacifico', cursive; }
+    .font-pixel { font-family: 'Press Start 2P', monospace; }
+
+    .neon-text-pink { color: #ff007f; text-shadow: 0 0 10px #ff007f, 0 0 20px #ff007f; }
+    .neon-text-cyan { color: #00f6ff; text-shadow: 0 0 10px #00f6ff, 0 0 20px #00f6ff; }
+    .neon-text-yellow { color: #ffe600; text-shadow: 0 0 10px #ffe600, 0 0 20px #ffe600; }
+
+    .hanging-banner {
+      background: linear-gradient(135deg, #ffe600 0%, #ff007f 100%);
+      border: 4px solid #00f6ff;
+      box-shadow: 0 0 25px #00f6ff;
+      border-radius: 12px;
+    }
+
+    textarea::-webkit-scrollbar { width: 6px; }
+    textarea::-webkit-scrollbar-track { background: #11052c; }
+    textarea::-webkit-scrollbar-thumb { background: #ff007f; border-radius: 3px; }
+  </style>
+</head>
+<body class="select-none flex h-screen w-screen overflow-hidden">
+
+  <div class="neon-glow-left"></div>
+  <div class="neon-glow-right"></div>
+
+  <button id="btn-toggle-panel" class="absolute top-4 left-4 z-30 bg-[#ff007f] hover:bg-[#d6006b] text-white border-2 border-[#00f6ff] w-11 h-11 rounded-full font-bold text-lg shadow-[0_0_15px_#ff007f] flex items-center justify-center transition active:scale-95">
+    ⚙️
+  </button>
+
+  <div id="side-panel" class="absolute top-0 left-0 w-80 md:w-96 h-full retro-panel p-5 pt-16 flex flex-col justify-between shrink-0 z-20 transition-transform duration-300 ease-in-out">
+    <div class="overflow-y-auto">
+      <div class="text-center border-b-2 border-[#00f6ff] pb-3 mb-4">
+        <p class="text-xs neon-text-yellow tracking-widest uppercase">BIP ANNIVERSARY</p>
+        <h2 class="font-script text-3xl neon-text-pink -mt-1">#RetroRewind</h2>
+      </div>
+
+      <div class="mb-4">
+        <div class="bg-[#11052c] p-2 border-2 border-[#ff007f] rounded-lg mb-2 flex justify-between items-center">
+          <span class="font-bold text-xs text-[#00f6ff]">DAFTAR PESERTA</span>
+          <span class="text-xs font-mono neon-text-yellow" id="count-display">0</span>
+        </div>
+        <div class="bg-[#09021a] p-2 border-2 border-[#00f6ff] shadow-inner rounded-lg">
+          <textarea id="participants-input" class="w-full h-28 bg-transparent text-xs font-mono text-[#00f6ff] focus:outline-none resize-none leading-tight" placeholder="1 nama per baris..."></textarea>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="bg-[#11052c] p-2 border-2 border-[#ff007f] rounded-lg mb-2">
+          <span class="font-bold text-xs text-[#00f6ff]">UNGGAH LOGO TENGAH</span>
+        </div>
+        <input type="file" id="logo-upload" accept="image/*" class="w-full text-[10px] text-[#00f6ff] file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:font-bold file:bg-[#ff007f] file:text-white hover:file:bg-[#d6006b] cursor-pointer">
+      </div>
+
+      <div class="mb-4">
+        <div class="bg-[#11052c] p-2 border-2 border-[#ff007f] rounded-lg mb-2">
+          <span class="font-bold text-xs text-[#00f6ff]">LINK GAMBAR MODAL PEMENANG</span>
+        </div>
+        <input type="text" id="modal-img-url" value="https://res.cloudinary.com/dktwbdl1t/image/upload/v1787142693/image-removebg-preview_byetb7.png" class="w-full bg-[#09021a] border-2 border-[#00f6ff] p-2 rounded-lg text-xs font-mono text-[#00f6ff] focus:outline-none" placeholder="https://...">
+      </div>
+
+      <div class="mb-4">
+        <div class="bg-[#11052c] p-2 border-2 border-[#ff007f] rounded-lg mb-1 flex justify-between items-center">
+          <span class="font-bold text-xs text-[#00f6ff]">DURASI PUTAR</span>
+          <span class="text-xs font-mono neon-text-yellow" id="duration-val">6s</span>
+        </div>
+        <input id="spin-duration" type="range" min="3" max="12" value="6" class="w-full accent-[#ff007f]">
+      </div>
+    </div>
+
+    <div class="flex gap-2 pt-2 border-t-2 border-[#00f6ff]">
+      <button id="btn-shuffle" class="flex-1 bg-[#00f6ff] hover:bg-[#00c4cc] text-[#11052c] font-black text-xs py-2.5 rounded-xl shadow-[0_0_10px_#00f6ff] transition">🔀 ACAK</button>
+      <button id="btn-clear" class="flex-1 bg-[#ff007f] hover:bg-[#d6006b] text-white font-black text-xs py-2.5 rounded-xl shadow-[0_0_10px_#ff007f] transition">🗑️ HAPUS</button>
+    </div>
+  </div>
+
+  <div class="flex-1 h-full relative flex flex-col items-center justify-center z-10">
+    <div class="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center pointer-events-none w-11/12 max-w-md">
+      <div class="hanging-banner px-6 py-2.5 text-center w-full relative">
+        <p class="text-[10px] text-[#11052c] font-black tracking-widest uppercase mb-0.5">CELEBRATING 36TH BIP ANNIVERSARY</p>
+        <h1 class="font-script text-2xl md:text-3xl text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] -mt-1 mb-1">RetroRewind</h1>
+        
+        <div class="bg-[#11052c] border-2 border-[#00f6ff] px-4 py-1.5 rounded-lg text-center">
+          <span class="text-[9px] text-[#ff007f] block font-pixel">Ready...</span>
+          <span id="live-name" class="font-mono text-base md:text-lg neon-text-cyan font-bold tracking-wider truncate block">Siapa yaa yang bakal menang...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="relative flex items-center justify-center mt-12">
+      <div id="pointer" class="absolute -right-8 z-20 transition-transform origin-right filter drop-shadow-[0_0_12px_#ff007f]">
+        <svg width="70" height="50" viewBox="0 0 70 50">
+          <defs>
+            <linearGradient id="pointerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ff3399" />
+              <stop offset="100%" stop-color="#cc0066" />
+            </linearGradient>
+          </defs>
+          <path d="M0 25 L60 5 Q70 25 60 45 Z" fill="url(#pointerGrad)" stroke="#ffffff" stroke-width="3.5"/>
+          <circle cx="55" cy="25" r="6" fill="#ffe600" stroke="#ffffff" stroke-width="2" />
+        </svg>
+      </div>
+
+      <canvas id="wheel-canvas" width="580" height="580" class="drop-shadow-[0_20px_35px_rgba(0,0,0,0.8)]"></canvas>
+    </div>
+  </div>
+
+  <div id="winner-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center hidden">
+    <div class="spotlight-overlay">
+      <div class="spotlight-left"></div>
+      <div class="spotlight-right"></div>
+    </div>
+
+    <div class="retro-panel winner-card-glow p-8 pt-4 rounded-2xl max-w-md w-full text-center border-4 border-[#00f6ff] relative z-10 transition-transform flex flex-col items-center">
+      <img id="winner-modal-icon" src="https://res.cloudinary.com/dktwbdl1t/image/upload/v1787142693/image-removebg-preview_byetb7.png" class="w-36 h-36 -mt-24 mb-2 animate-bounce object-contain filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] z-20" alt="Winner Icon">
+      
+      <p class="text-xs neon-text-yellow tracking-widest uppercase font-black mb-1">WINNER WINNER!</p>
+      <h3 class="font-script text-3xl neon-text-pink mb-2">RetroRewind Champion Prize</h3>
+      <h1 id="winner-name" class="font-mono text-3xl font-black text-white neon-text-cyan mb-2 break-words">Nama Pemenang</h1>
+    </div>
+  </div>
+
+  <script>
+    // HARDCODED NOMOR PESERTA BIP-0101 s/d BIP-1107
+    let rawParticipants = [
+      "BIP-0701", "BIP-0702", "BIP-0703", "BIP-0704", "BIP-0705", "BIP-0706", "BIP-0707", "BIP-0708", "BIP-0709", "BIP-0710",
+      "BIP-0711", "BIP-0712", "BIP-0713", "BIP-0714", "BIP-0715", "BIP-0716", "BIP-0717", "BIP-0718", "BIP-0719", "BIP-0720",
+      "BIP-0721", "BIP-0722", "BIP-0723", "BIP-0724", "BIP-0725", "BIP-0726", "BIP-0727", "BIP-0728", "BIP-0729", "BIP-0730",
+      "BIP-0731", "BIP-0732", "BIP-0733", "BIP-0734", "BIP-0735", "BIP-0736", "BIP-0737", "BIP-0738", "BIP-0739", "BIP-0740",
+      "BIP-0741", "BIP-0742", "BIP-0743", "BIP-0744", "BIP-0745", "BIP-0746", "BIP-0747", "BIP-0748", "BIP-0749", "BIP-0750",
+      "BIP-0751", "BIP-0752", "BIP-0753", "BIP-0754", "BIP-0755", "BIP-0756", "BIP-0757", "BIP-0758", "BIP-0759", "BIP-0760",
+      "BIP-0761", "BIP-0762", "BIP-0763", "BIP-0764", "BIP-0765", "BIP-0766", "BIP-0767", "BIP-0768", "BIP-0769", "BIP-0770",
+      "BIP-0771", "BIP-0772", "BIP-0773", "BIP-0774", "BIP-0775", "BIP-0776", "BIP-0777", "BIP-0778", "BIP-0779", "BIP-0780",
+      "BIP-0781", "BIP-0782", "BIP-0783", "BIP-0784", "BIP-0785", "BIP-0786", "BIP-0787", "BIP-0788", "BIP-0789", "BIP-0790",
+      "BIP-0791", "BIP-0792", "BIP-0793", "BIP-0794", "BIP-0795", "BIP-0796", "BIP-0797", "BIP-0798", "BIP-0799", "BIP-0800",
+      "BIP-0801", "BIP-0802", "BIP-0803", "BIP-0804", "BIP-0805", "BIP-0806", "BIP-0807", "BIP-0808", "BIP-0809", "BIP-0810",
+      "BIP-0811", "BIP-0812", "BIP-0813", "BIP-0814", "BIP-0815", "BIP-0816", "BIP-0817", "BIP-0818", "BIP-0819", "BIP-0820",
+      "BIP-0821", "BIP-0822", "BIP-0823", "BIP-0824", "BIP-0825", "BIP-0826", "BIP-0827", "BIP-0828", "BIP-0829", "BIP-0830",
+      "BIP-0831", "BIP-0832", "BIP-0833", "BIP-0834", "BIP-0835", "BIP-0836", "BIP-0837", "BIP-0838", "BIP-0839", "BIP-0840",
+      "BIP-0841", "BIP-0842", "BIP-0843", "BIP-0844", "BIP-0845", "BIP-0846", "BIP-0847", "BIP-0848", "BIP-0849", "BIP-0850",
+      "BIP-0851", "BIP-0852", "BIP-0853", "BIP-0854", "BIP-0855", "BIP-0856", "BIP-0857", "BIP-0858", "BIP-0859", "BIP-0860",
+      "BIP-0861", "BIP-0862", "BIP-0863", "BIP-0864", "BIP-0865", "BIP-0866", "BIP-0867", "BIP-0868", "BIP-0869", "BIP-0870",
+      "BIP-0871", "BIP-0872", "BIP-0873", "BIP-0874", "BIP-0875", "BIP-0876", "BIP-0877", "BIP-0878", "BIP-0879", "BIP-0880",
+      "BIP-0881", "BIP-0882", "BIP-0883", "BIP-0884", "BIP-0885", "BIP-0886", "BIP-0887", "BIP-0888", "BIP-0889", "BIP-0890",
+      "BIP-0891", "BIP-0892", "BIP-0893", "BIP-0894", "BIP-0895", "BIP-0896", "BIP-0897", "BIP-0898", "BIP-0899", "BIP-0900",
+      "BIP-0901", "BIP-0902", "BIP-0903", "BIP-0904", "BIP-0905", "BIP-0906", "BIP-0907", "BIP-0908", "BIP-0909", "BIP-0910",
+      "BIP-0911", "BIP-0912", "BIP-0913", "BIP-0914", "BIP-0915", "BIP-0916", "BIP-0917", "BIP-0918", "BIP-0919", "BIP-0920",
+      "BIP-0921", "BIP-0922", "BIP-0923", "BIP-0924", "BIP-0925", "BIP-0926", "BIP-0927", "BIP-0928", "BIP-0929", "BIP-0930",
+      "BIP-0931", "BIP-0932", "BIP-0933", "BIP-0934", "BIP-0935", "BIP-0936", "BIP-0937", "BIP-0938", "BIP-0939", "BIP-0940",
+      "BIP-0941", "BIP-0942", "BIP-0943", "BIP-0944", "BIP-0945", "BIP-0946", "BIP-0947", "BIP-0948", "BIP-0949", "BIP-0950",
+      "BIP-0951", "BIP-0952", "BIP-0953", "BIP-0954", "BIP-0955", "BIP-0956", "BIP-0957", "BIP-0958", "BIP-0959", "BIP-0960",
+      "BIP-0961", "BIP-0962", "BIP-0963", "BIP-0964", "BIP-0965", "BIP-0966", "BIP-0967", "BIP-0968", "BIP-0969", "BIP-0970",
+      "BIP-0971", "BIP-0972", "BIP-0973", "BIP-0974", "BIP-0975", "BIP-0976", "BIP-0977", "BIP-0978", "BIP-0979", "BIP-0980",
+      "BIP-0981", "BIP-0982", "BIP-0983", "BIP-0984", "BIP-0985", "BIP-0986", "BIP-0987", "BIP-0988", "BIP-0989", "BIP-0990",
+      "BIP-0991", "BIP-0992", "BIP-0993", "BIP-0994", "BIP-0995", "BIP-0996", "BIP-0997", "BIP-0998", "BIP-0999", "BIP-1000",
+      "BIP-1001", "BIP-1002", "BIP-1003", "BIP-1004", "BIP-1005", "BIP-1006", "BIP-1007", "BIP-1008", "BIP-1009", "BIP-1010",
+      "BIP-1011", "BIP-1012", "BIP-1013", "BIP-1014", "BIP-1015", "BIP-1016", "BIP-1017", "BIP-1018", "BIP-1019", "BIP-1020",
+      "BIP-1021", "BIP-1022", "BIP-1023", "BIP-1024", "BIP-1025", "BIP-1026", "BIP-1027", "BIP-1028", "BIP-1029", "BIP-1030",
+      "BIP-1031", "BIP-1032", "BIP-1033", "BIP-1034", "BIP-1035", "BIP-1036", "BIP-1037", "BIP-1038", "BIP-1039", "BIP-1040",
+      "BIP-1041", "BIP-1042", "BIP-1043", "BIP-1044", "BIP-1045", "BIP-1046", "BIP-1047", "BIP-1048", "BIP-1049", "BIP-1050",
+      "BIP-1051", "BIP-1052", "BIP-1053", "BIP-1054", "BIP-1055", "BIP-1056", "BIP-1057", "BIP-1058", "BIP-1059", "BIP-1060",
+      "BIP-1061", "BIP-1062", "BIP-1063", "BIP-1064", "BIP-1065", "BIP-1066", "BIP-1067", "BIP-1068", "BIP-1069", "BIP-1070",
+      "BIP-1071", "BIP-1072", "BIP-1073", "BIP-1074", "BIP-1075", "BIP-1076", "BIP-1077", "BIP-1078", "BIP-1079", "BIP-1080",
+      "BIP-1081", "BIP-1082", "BIP-1083", "BIP-1084", "BIP-1085", "BIP-1086", "BIP-1087", "BIP-1088", "BIP-1089", "BIP-1090",
+      "BIP-1092", "BIP-1093", "BIP-1094", "BIP-1095", "BIP-1096", "BIP-1097", "BIP-1098", "BIP-1099", "BIP-1100", "BIP-1101",
+      "BIP-1102", "BIP-1103", "BIP-1104", "BIP-1105", "BIP-1106", "BIP-1107", "BIP-0101", "BIP-0102", "BIP-0103", "BIP-0104",
+      "BIP-0105", "BIP-0106", "BIP-0107", "BIP-0108", "BIP-0109", "BIP-0110", "BIP-0111", "BIP-0112", "BIP-0113", "BIP-0114",
+      "BIP-0115", "BIP-0116", "BIP-0117", "BIP-0118", "BIP-0119", "BIP-0120", "BIP-0121", "BIP-0122", "BIP-0123", "BIP-0124",
+      "BIP-0125", "BIP-0126", "BIP-0127", "BIP-0128", "BIP-0129", "BIP-0130", "BIP-0131", "BIP-0132", "BIP-0133", "BIP-0134",
+      "BIP-0135", "BIP-0136", "BIP-0137", "BIP-0138", "BIP-0139", "BIP-0140", "BIP-0141", "BIP-0142", "BIP-0143", "BIP-0144",
+      "BIP-0145", "BIP-0146", "BIP-0147", "BIP-0148", "BIP-0149", "BIP-0150", "BIP-0151", "BIP-0152", "BIP-0153", "BIP-0154",
+      "BIP-0155", "BIP-0156", "BIP-0157", "BIP-0158", "BIP-0159", "BIP-0160", "BIP-0161", "BIP-0162", "BIP-0163", "BIP-0164",
+      "BIP-0165", "BIP-0166", "BIP-0167", "BIP-0168", "BIP-0169", "BIP-0170", "BIP-0171", "BIP-0172", "BIP-0173", "BIP-0174",
+      "BIP-0175", "BIP-0176", "BIP-0177", "BIP-0178", "BIP-0179", "BIP-0180", "BIP-0181", "BIP-0182", "BIP-0183", "BIP-0184",
+      "BIP-0185", "BIP-0186", "BIP-0187", "BIP-0188", "BIP-0189", "BIP-0190", "BIP-0191", "BIP-0192", "BIP-0193", "BIP-0194",
+      "BIP-0195", "BIP-0196", "BIP-0197", "BIP-0198", "BIP-0199", "BIP-0200", "BIP-0201", "BIP-0202", "BIP-0203", "BIP-0204",
+      "BIP-0205", "BIP-0206", "BIP-0207", "BIP-0208", "BIP-0209", "BIP-0210", "BIP-0211", "BIP-0212", "BIP-0213", "BIP-0214",
+      "BIP-0215", "BIP-0216", "BIP-0217", "BIP-0218", "BIP-0219", "BIP-0220", "BIP-0221", "BIP-0222", "BIP-0223", "BIP-0224",
+      "BIP-0225", "BIP-0226", "BIP-0227", "BIP-0228", "BIP-0229", "BIP-0230", "BIP-0231", "BIP-0232", "BIP-0233", "BIP-0234",
+      "BIP-0235", "BIP-0236", "BIP-0237", "BIP-0238", "BIP-0239", "BIP-0240", "BIP-0241", "BIP-0242", "BIP-0243", "BIP-0244",
+      "BIP-0245", "BIP-0246", "BIP-0247", "BIP-0248", "BIP-0249", "BIP-0250", "BIP-0251", "BIP-0252", "BIP-0253", "BIP-0254",
+      "BIP-0255", "BIP-0256", "BIP-0257", "BIP-0258", "BIP-0259", "BIP-0260", "BIP-0261", "BIP-0262", "BIP-0263", "BIP-0264",
+      "BIP-0265", "BIP-0266", "BIP-0267", "BIP-0268", "BIP-0269", "BIP-0270", "BIP-0271", "BIP-0272", "BIP-0273", "BIP-0274",
+      "BIP-0275", "BIP-0276", "BIP-0277", "BIP-0278", "BIP-0279", "BIP-0280", "BIP-0281", "BIP-0282", "BIP-0283", "BIP-0284",
+      "BIP-0285", "BIP-0286", "BIP-0287", "BIP-0288", "BIP-0289", "BIP-0290", "BIP-0291", "BIP-0292", "BIP-0293", "BIP-0294",
+      "BIP-0295", "BIP-0296", "BIP-0297", "BIP-0298", "BIP-0299", "BIP-0300", "BIP-0301", "BIP-0302", "BIP-0303", "BIP-0304",
+      "BIP-0305", "BIP-0306", "BIP-0307", "BIP-0308", "BIP-0309", "BIP-0310", "BIP-0311", "BIP-0312", "BIP-0313", "BIP-0314",
+      "BIP-0315", "BIP-0316", "BIP-0317", "BIP-0318", "BIP-0319", "BIP-0320", "BIP-0321", "BIP-0322", "BIP-0323", "BIP-0324",
+      "BIP-0325", "BIP-0326", "BIP-0327", "BIP-0328", "BIP-0329", "BIP-0330", "BIP-0331", "BIP-0332", "BIP-0333", "BIP-0334",
+      "BIP-0335", "BIP-0336", "BIP-0337", "BIP-0338", "BIP-0339", "BIP-0340", "BIP-0341", "BIP-0342", "BIP-0343", "BIP-0344",
+      "BIP-0345", "BIP-0346", "BIP-0347", "BIP-0348", "BIP-0349", "BIP-0350", "BIP-0351", "BIP-0352", "BIP-0353", "BIP-0354",
+      "BIP-0355", "BIP-0356", "BIP-0357", "BIP-0358", "BIP-0359", "BIP-0360", "BIP-0361", "BIP-0362", "BIP-0363", "BIP-0364",
+      "BIP-0365", "BIP-0366", "BIP-0367", "BIP-0368", "BIP-0369", "BIP-0370", "BIP-0371", "BIP-0372", "BIP-0373", "BIP-0374",
+      "BIP-0375", "BIP-0376", "BIP-0377", "BIP-0378", "BIP-0379", "BIP-0380", "BIP-0381", "BIP-0382", "BIP-0383", "BIP-0384",
+      "BIP-0385", "BIP-0386", "BIP-0387", "BIP-0388", "BIP-0389", "BIP-0390", "BIP-0391", "BIP-0392", "BIP-0393", "BIP-0394",
+      "BIP-0395", "BIP-0396", "BIP-0397", "BIP-0398", "BIP-0399", "BIP-0400", "BIP-0401", "BIP-0402", "BIP-0403", "BIP-0404",
+      "BIP-0405", "BIP-0406", "BIP-0407", "BIP-0408", "BIP-0409", "BIP-0410", "BIP-0411", "BIP-0412", "BIP-0413", "BIP-0414",
+      "BIP-0415", "BIP-0416", "BIP-0417", "BIP-0418", "BIP-0419", "BIP-0420", "BIP-0421", "BIP-0422", "BIP-0423", "BIP-0424",
+      "BIP-0425", "BIP-0426", "BIP-0427", "BIP-0428", "BIP-0429", "BIP-0430", "BIP-0431", "BIP-0432", "BIP-0434", "BIP-0435",
+      "BIP-0436", "BIP-0437", "BIP-0438", "BIP-0439", "BIP-0440", "BIP-0441", "BIP-0442", "BIP-0443", "BIP-0444", "BIP-0445",
+      "BIP-0446", "BIP-0447", "BIP-0448", "BIP-0449", "BIP-0450", "BIP-0451", "BIP-0452", "BIP-0453", "BIP-0454", "BIP-0455",
+      "BIP-0456", "BIP-0457", "BIP-0458", "BIP-0459", "BIP-0460", "BIP-0461", "BIP-0462", "BIP-0463", "BIP-0464", "BIP-0465",
+      "BIP-0466", "BIP-0467", "BIP-0468", "BIP-0469", "BIP-0470", "BIP-0471", "BIP-0472", "BIP-0473", "BIP-0474", "BIP-0475",
+      "BIP-0476", "BIP-0477", "BIP-0478", "BIP-0479", "BIP-0480", "BIP-0481", "BIP-0482", "BIP-0483", "BIP-0484", "BIP-0485",
+      "BIP-0486", "BIP-0487", "BIP-0488", "BIP-0489", "BIP-0490", "BIP-0491", "BIP-0492", "BIP-0493", "BIP-0494", "BIP-0495",
+      "BIP-0496", "BIP-0497", "BIP-0498", "BIP-0499", "BIP-0500", "BIP-0501", "BIP-0502", "BIP-0503", "BIP-0504", "BIP-0505",
+      "BIP-0506", "BIP-0507", "BIP-0508", "BIP-0509", "BIP-0510", "BIP-0511", "BIP-0512", "BIP-0513", "BIP-0514", "BIP-0515",
+      "BIP-0516", "BIP-0517", "BIP-0518", "BIP-0519", "BIP-0520", "BIP-0521", "BIP-0522", "BIP-0523", "BIP-0524", "BIP-0525",
+      "BIP-0526", "BIP-0527", "BIP-0528", "BIP-0529", "BIP-0530", "BIP-0531", "BIP-0532", "BIP-0533", "BIP-0534", "BIP-0535",
+      "BIP-0536", "BIP-0537", "BIP-0538", "BIP-0539", "BIP-0540", "BIP-0541", "BIP-0542", "BIP-0543", "BIP-0544", "BIP-0545",
+      "BIP-0546", "BIP-0547", "BIP-0548", "BIP-0549", "BIP-0550", "BIP-0551", "BIP-0552", "BIP-0553", "BIP-0554", "BIP-0555",
+      "BIP-0556", "BIP-0557", "BIP-0558", "BIP-0559", "BIP-0560", "BIP-0561", "BIP-0562", "BIP-0563", "BIP-0564", "BIP-0565",
+      "BIP-0566", "BIP-0567", "BIP-0568", "BIP-0569", "BIP-0570", "BIP-0571", "BIP-0572", "BIP-0573", "BIP-0574", "BIP-0575",
+      "BIP-0576", "BIP-0577", "BIP-0578", "BIP-0579", "BIP-0580", "BIP-0581", "BIP-0582", "BIP-0583", "BIP-0584", "BIP-0585",
+      "BIP-0586", "BIP-0587", "BIP-0588", "BIP-0589", "BIP-0590", "BIP-0591", "BIP-0592", "BIP-0593", "BIP-0594", "BIP-0595",
+      "BIP-0596", "BIP-0597", "BIP-0598", "BIP-0599", "BIP-0600", "BIP-0601", "BIP-0602", "BIP-0603", "BIP-0604", "BIP-0605",
+      "BIP-0606", "BIP-0607", "BIP-0608", "BIP-0609", "BIP-0610", "BIP-0611", "BIP-0612", "BIP-0613", "BIP-0614", "BIP-0615",
+      "BIP-0616", "BIP-0617", "BIP-0618", "BIP-0619", "BIP-0620", "BIP-0621", "BIP-0622", "BIP-0623", "BIP-0624", "BIP-0625",
+      "BIP-0626", "BIP-0627", "BIP-0628", "BIP-0629", "BIP-0630", "BIP-0631", "BIP-0632", "BIP-0633", "BIP-0634", "BIP-0635",
+      "BIP-0636", "BIP-0637", "BIP-0638", "BIP-0639", "BIP-0640", "BIP-0641", "BIP-0642", "BIP-0643", "BIP-0644", "BIP-0645",
+      "BIP-0646", "BIP-0647", "BIP-0648", "BIP-0649", "BIP-0650", "BIP-0651", "BIP-0652", "BIP-0653", "BIP-0654", "BIP-0655",
+      "BIP-0656", "BIP-0657", "BIP-0658", "BIP-0659", "BIP-0660", "BIP-0661", "BIP-0662", "BIP-0663", "BIP-0664", "BIP-0665",
+      "BIP-0666", "BIP-0667", "BIP-0668", "BIP-0669", "BIP-0670", "BIP-0671", "BIP-0672", "BIP-0673", "BIP-0674", "BIP-0675",
+      "BIP-0676", "BIP-0677", "BIP-0678", "BIP-0679", "BIP-0681", "BIP-0682", "BIP-0683", "BIP-0684", "BIP-0685", "BIP-0686",
+      "BIP-0687", "BIP-0688", "BIP-0689", "BIP-0690", "BIP-0691", "BIP-0692", "BIP-0693", "BIP-0694", "BIP-0695", "BIP-0696",
+      "BIP-0697", "BIP-0698", "BIP-0699", "BIP-0700"
+    ];
+
+    let groupedSectors = [];
+    let isSpinning = false;
+    let isModalOpen = false;
+    let currentAngle = 0;
+    let idleSpeed = 0.0025;
+    let lastTickIndex = -1;
+    let selectedWinnerName = "";
+    let centerLogoImg = null;
+    let fireworkInterval = null;
+
+    const canvas = document.getElementById('wheel-canvas');
+    const ctx = canvas.getContext('2d');
+    const pointer = document.getElementById('pointer');
+    const sidePanel = document.getElementById('side-panel');
+    const winnerModal = document.getElementById('winner-modal');
+    const modalImgInput = document.getElementById('modal-img-url');
+    const winnerModalIcon = document.getElementById('winner-modal-icon');
+
+    document.getElementById('btn-toggle-panel').addEventListener('click', () => {
+      sidePanel.classList.toggle('-translate-x-full');
+    });
+
+    modalImgInput.addEventListener('input', (e) => {
+      const url = e.target.value.trim();
+      if (url) winnerModalIcon.src = url;
+    });
+
+    document.getElementById('logo-upload').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const img = new Image();
+          img.onload = () => {
+            centerLogoImg = img;
+            drawWheel();
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playTick() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.03);
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.03);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.03);
+    }
+
+    function updateSectors() {
+      groupedSectors = [];
+      const total = rawParticipants.length;
+      if (total === 0) return;
+      const maxSectors = Math.min(24, total);
+      const itemsPerSector = Math.ceil(total / maxSectors);
+
+      for (let i = 0; i < maxSectors; i++) {
+        const start = i * itemsPerSector;
+        const end = Math.min(start + itemsPerSector, total);
+        const members = rawParticipants.slice(start, end);
+        if (members.length > 0) {
+          let label = members.length === 1 ? members[0] : `${members[0]} - ${members[members.length - 1]}`;
+          groupedSectors.push({ label: label, members: members });
+        }
+      }
+    }
+
+    function drawWheel() {
+      const size = canvas.width;
+      const center = size / 2;
+      const radius = center - 30;
+
+      ctx.clearRect(0, 0, size, size);
+      const numSectors = groupedSectors.length;
+      if (numSectors === 0) return;
+
+      const arc = (Math.PI * 2) / numSectors;
+      const colorPalettes = [
+        { main: '#ff007f', light: '#ff66b3', dark: '#b30059' },
+        { main: '#00f6ff', light: '#80fbff', dark: '#00acb3' },
+        { main: '#ffe600', light: '#fff066', dark: '#b3a200' },
+        { main: '#7b2cbf', light: '#ad63e6', dark: '#521d80' },
+        { main: '#00f5d4', light: '#80faea', dark: '#00ac95' },
+        { main: '#ff5400', light: '#ff9766', dark: '#b33b00' }
+      ];
+
+      ctx.save();
+      ctx.translate(center, center);
+      ctx.rotate(currentAngle);
+
+      ctx.beginPath();
+      ctx.arc(0, 8, radius + 10, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fill();
+
+      for (let i = 0; i < numSectors; i++) {
+        const angle = i * arc;
+        const pal = colorPalettes[i % colorPalettes.length];
+
+        const radGrad = ctx.createRadialGradient(0, 0, radius * 0.2, 0, 0, radius);
+        radGrad.addColorStop(0, pal.light);
+        radGrad.addColorStop(0.7, pal.main);
+        radGrad.addColorStop(1, pal.dark);
+
+        ctx.beginPath();
+        ctx.fillStyle = radGrad;
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, angle, angle + arc);
+        ctx.lineTo(0, 0);
+        ctx.fill();
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.rotate(angle + arc / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#ffffff";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+        ctx.shadowOffsetY = 2;
+        ctx.shadowBlur = 4;
+
+        let fontSize = Math.max(10, Math.min(14, Math.floor(220 / numSectors)));
+        ctx.font = `900 ${fontSize}px 'Righteous', sans-serif`;
+        ctx.fillText(groupedSectors[i].label, radius - 30, fontSize / 3);
+        ctx.restore();
+      }
+
+      const innerShadow = ctx.createRadialGradient(0, 0, radius - 15, 0, 0, radius);
+      innerShadow.addColorStop(0, 'rgba(0,0,0,0)');
+      innerShadow.addColorStop(1, 'rgba(0,0,0,0.4)');
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fillStyle = innerShadow;
+      ctx.fill();
+
+      const rimGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
+      rimGrad.addColorStop(0, '#ffffff');
+      rimGrad.addColorStop(0.3, '#ff007f');
+      rimGrad.addColorStop(0.7, '#11052c');
+      rimGrad.addColorStop(1, '#00f6ff');
+
+      ctx.beginPath();
+      ctx.arc(0, 0, radius + 8, 0, Math.PI * 2);
+      ctx.strokeStyle = rimGrad;
+      ctx.lineWidth = 16;
+      ctx.stroke();
+
+      const hubRadius = radius * 0.22;
+      
+      if (centerLogoImg) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(0, 0, hubRadius, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(centerLogoImg, -hubRadius, -hubRadius, hubRadius * 2, hubRadius * 2);
+        ctx.restore();
+      } else {
+        const hubGrad = ctx.createRadialGradient(-10, -10, 5, 0, 0, hubRadius);
+        hubGrad.addColorStop(0, '#ffffff');
+        hubGrad.addColorStop(0.3, '#ffe600');
+        hubGrad.addColorStop(0.9, '#ff9900');
+        hubGrad.addColorStop(1, '#b36b00');
+
+        ctx.beginPath();
+        ctx.arc(0, 0, hubRadius, 0, Math.PI * 2);
+        ctx.fillStyle = hubGrad;
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowOffsetY = 5;
+        ctx.shadowBlur = 10;
+        ctx.fill();
+      }
+
+      ctx.beginPath();
+      ctx.arc(0, 0, hubRadius, 0, Math.PI * 2);
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    function spinWheel() {
+      if (isSpinning || isModalOpen || rawParticipants.length === 0) return;
+      isSpinning = true;
+
+      const totalParticipants = rawParticipants.length;
+      const duration = parseInt(document.getElementById('spin-duration').value) * 1000;
+      const winningIndex = Math.floor(Math.random() * totalParticipants);
+      selectedWinnerName = rawParticipants[winningIndex];
+
+      const participantArc = (Math.PI * 2) / totalParticipants;
+      const startAngle = currentAngle;
+      
+      const targetAngle = startAngle + (Math.PI * 2 * 8) - (startAngle % (Math.PI * 2)) - (winningIndex * participantArc) - (participantArc / 2);
+      const deltaAngle = targetAngle - startAngle;
+      const startTime = performance.now();
+
+      function animateSpin(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        const easeOutQuint = 1 - Math.pow(1 - progress, 5);
+        currentAngle = startAngle + deltaAngle * easeOutQuint;
+
+        drawWheel();
+
+        const normalizedAngle = ((2 * Math.PI) - (currentAngle % (Math.PI * 2)) + (Math.PI * 20)) % (Math.PI * 2);
+        const currentPassedIndex = Math.floor(normalizedAngle / participantArc) % totalParticipants;
+
+        if (currentPassedIndex !== lastTickIndex) {
+          playTick();
+          document.getElementById('live-name').innerText = rawParticipants[currentPassedIndex] || "...";
+          pointer.style.transform = 'rotate(-15deg)';
+          setTimeout(() => { pointer.style.transform = 'rotate(0deg)'; }, 30);
+          lastTickIndex = currentPassedIndex;
+        }
+
+        if (progress < 1) {
+          requestAnimationFrame(animateSpin);
+        } else {
+          isSpinning = false;
+          document.getElementById('live-name').innerText = selectedWinnerName;
+          showWinnerModal(selectedWinnerName);
+        }
+      }
+
+      requestAnimationFrame(animateSpin);
+    }
+
+    function mainLoop() {
+      if (!isSpinning) {
+        currentAngle += idleSpeed;
+        drawWheel();
+      }
+      requestAnimationFrame(mainLoop);
+    }
+
+    const textarea = document.getElementById('participants-input');
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' && document.activeElement !== textarea && document.activeElement !== modalImgInput) {
+        e.preventDefault();
+        if (isModalOpen) {
+          closeWinnerModal();
+        } else {
+          spinWheel();
+        }
+      }
+    });
+
+    function triggerGrandFireworks() {
+      const duration = 3000;
+      const animationEnd = Date.now() + duration;
+
+      fireworkInterval = setInterval(() => {
+        const timeLeft = animationEnd - Date.now();
+        if (timeLeft <= 0) return clearInterval(fireworkInterval);
+
+        const particleCount = 50 * (timeLeft / duration);
+
+        confetti({ particleCount, angle: 60, spread: 80, origin: { x: 0, y: 0.8 }, colors: ['#ff007f', '#00f6ff', '#ffe600'] });
+        confetti({ particleCount, angle: 120, spread: 80, origin: { x: 1, y: 0.8 }, colors: ['#ff007f', '#00f6ff', '#ffe600'] });
+        confetti({ particleCount: particleCount * 0.5, angle: 90, spread: 120, origin: { x: 0.5, y: 0.3 }, colors: ['#ffffff', '#00f5d4', '#ff5400'] });
+      }, 250);
+    }
+
+    function showWinnerModal(winnerName) {
+      isModalOpen = true;
+      triggerGrandFireworks();
+      
+      document.getElementById('winner-name').innerText = winnerName;
+      winnerModal.classList.remove('hidden');
+
+      rawParticipants = rawParticipants.filter(p => p !== winnerName);
+      textarea.value = rawParticipants.join('\n');
+      document.getElementById('count-display').innerText = rawParticipants.length;
+      updateSectors();
+    }
+
+    function closeWinnerModal() {
+      isModalOpen = false;
+      if (fireworkInterval) clearInterval(fireworkInterval);
+      winnerModal.classList.add('hidden');
+    }
+
+    // INITIALIZATION DENGAN NAMA PESERTA HARCODED
+    textarea.value = rawParticipants.join('\n');
+    document.getElementById('count-display').innerText = rawParticipants.length;
+    updateSectors();
+
+    textarea.addEventListener('input', () => {
+      const text = textarea.value.trim();
+      rawParticipants = text ? text.split('\n').map(s => s.trim()).filter(Boolean) : [];
+      document.getElementById('count-display').innerText = rawParticipants.length;
+      updateSectors();
+      drawWheel();
+    });
+
+    document.getElementById('btn-shuffle').addEventListener('click', () => {
+      rawParticipants.sort(() => Math.random() - 0.5);
+      textarea.value = rawParticipants.join('\n');
+      updateSectors();
+      drawWheel();
+    });
+
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      textarea.value = '';
+      rawParticipants = [];
+      document.getElementById('count-display').innerText = 0;
+      updateSectors();
+      drawWheel();
+    });
+
+    document.getElementById('spin-duration').addEventListener('input', (e) => {
+      document.getElementById('duration-val').innerText = `${e.target.value}s`;
+    });
+
+    mainLoop();
+  </script>
+</body>
+</html>
