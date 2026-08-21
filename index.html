@@ -93,7 +93,7 @@
     }
     @keyframes cardPulse {
       0% { box-shadow: 0 0 30px #00f6ff, 0 0 60px #ff007f; transform: scale(1); }
-      100% { box-shadow: 0 0 60px #ffe600, 0 0 90px #ff007f; transform: scale(1.03); }
+      100% { box-shadow: 0 0 60px #ffe600, 0 0 90px #ff007f; transform: scale(1.02); }
     }
 
     .font-script { font-family: 'Pacifico', cursive; }
@@ -110,9 +110,27 @@
       border-radius: 12px;
     }
 
-    textarea::-webkit-scrollbar { width: 6px; }
-    textarea::-webkit-scrollbar-track { background: #11052c; }
-    textarea::-webkit-scrollbar-thumb { background: #ff007f; border-radius: 3px; }
+    textarea::-webkit-scrollbar, .modal-scroll::-webkit-scrollbar { width: 6px; }
+    textarea::-webkit-scrollbar-track, .modal-scroll::-webkit-scrollbar-track { background: #11052c; }
+    textarea::-webkit-scrollbar-thumb, .modal-scroll::-webkit-scrollbar-thumb { background: #ff007f; border-radius: 3px; }
+
+    /* EFEK BADGE PEMENANG KREATIF */
+    .winner-badge {
+      background: linear-gradient(135deg, rgba(255, 0, 127, 0.25), rgba(0, 246, 255, 0.25));
+      border: 2px solid #00f6ff;
+      box-shadow: 0 0 15px rgba(0, 246, 255, 0.4), inset 0 0 10px rgba(255, 0, 127, 0.3);
+      backdrop-filter: blur(5px);
+      animation: badgePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+      opacity: 0;
+      transform: scale(0.5);
+    }
+
+    @keyframes badgePop {
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
   </style>
 </head>
 <body class="select-none flex h-screen w-screen overflow-hidden">
@@ -137,8 +155,15 @@
           <span class="text-xs font-mono neon-text-yellow" id="count-display">0</span>
         </div>
         <div class="bg-[#09021a] p-2 border-2 border-[#00f6ff] shadow-inner rounded-lg">
-          <textarea id="participants-input" class="w-full h-28 bg-transparent text-xs font-mono text-[#00f6ff] focus:outline-none resize-none leading-tight" placeholder="1 nama per baris..."></textarea>
+          <textarea id="participants-input" class="w-full h-24 bg-transparent text-xs font-mono text-[#00f6ff] focus:outline-none resize-none leading-tight" placeholder="1 nama per baris..."></textarea>
         </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="bg-[#11052c] p-2 border-2 border-[#ff007f] rounded-lg mb-2 flex justify-between items-center">
+          <span class="font-bold text-xs text-[#00f6ff]">JUMLAH PEMENANG / SPIN</span>
+        </div>
+        <input type="number" id="winner-count-input" min="1" max="10" value="1" class="w-full bg-[#09021a] border-2 border-[#00f6ff] p-2 rounded-lg text-xs font-mono text-[#00f6ff] focus:outline-none">
       </div>
 
       <div class="mb-4">
@@ -207,17 +232,19 @@
       <div class="spotlight-right"></div>
     </div>
 
-    <div class="retro-panel winner-card-glow p-8 pt-4 rounded-2xl max-w-md w-full text-center border-4 border-[#00f6ff] relative z-10 transition-transform flex flex-col items-center">
+    <div class="retro-panel winner-card-glow p-8 pt-4 rounded-2xl max-w-xl w-11/12 text-center border-4 border-[#00f6ff] relative z-10 transition-transform flex flex-col items-center">
       <img id="winner-modal-icon" src="https://res.cloudinary.com/dktwbdl1t/image/upload/v1787142693/image-removebg-preview_byetb7.png" class="w-36 h-36 -mt-24 mb-2 animate-bounce object-contain filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.8)] z-20" alt="Winner Icon">
       
       <p class="text-xs neon-text-yellow tracking-widest uppercase font-black mb-1">WINNER WINNER!</p>
-      <h3 class="font-script text-3xl neon-text-blue mb-2">RetroRewind Champion Prize</h3>
-      <h1 id="winner-name" class="font-mono text-3xl font-black text-white neon-text-cyan mb-2 break-words">Nama Pemenang</h1>
+      <h3 class="font-script text-3xl neon-text-green mb-4">RetroRewind Champion Prize</h3>
+      
+      <!-- CONTAINER PEMENANG DENGAN LAYOUT DYNAMIC NEON BADGE -->
+      <div id="winner-container" class="w-full max-h-64 overflow-y-auto modal-scroll my-2 flex flex-wrap gap-3 items-center justify-center p-2">
+      </div>
     </div>
   </div>
 
   <script>
-    // HARDCODED NOMOR PESERTA BIP-0101 s/d BIP-1107
     let rawParticipants = [
       "BIP-0701", "BIP-0702", "BIP-0703", "BIP-0704", "BIP-0705", "BIP-0706", "BIP-0707", "BIP-0708", "BIP-0709", "BIP-0710",
       "BIP-0711", "BIP-0712", "BIP-0713", "BIP-0714", "BIP-0715", "BIP-0716", "BIP-0717", "BIP-0718", "BIP-0719", "BIP-0720",
@@ -328,7 +355,6 @@
     let currentAngle = 0;
     let idleSpeed = 0.0025;
     let lastTickIndex = -1;
-    let selectedWinnerName = "";
     let centerLogoImg = null;
     let fireworkInterval = null;
 
@@ -339,6 +365,7 @@
     const winnerModal = document.getElementById('winner-modal');
     const modalImgInput = document.getElementById('modal-img-url');
     const winnerModalIcon = document.getElementById('winner-modal-icon');
+    const winnerCountInput = document.getElementById('winner-count-input');
 
     document.getElementById('btn-toggle-panel').addEventListener('click', () => {
       sidePanel.classList.toggle('-translate-x-full');
@@ -521,8 +548,16 @@
 
       const totalParticipants = rawParticipants.length;
       const duration = parseInt(document.getElementById('spin-duration').value) * 1000;
-      const winningIndex = Math.floor(Math.random() * totalParticipants);
-      selectedWinnerName = rawParticipants[winningIndex];
+      
+      let targetWinnerCount = parseInt(winnerCountInput.value) || 1;
+      targetWinnerCount = Math.min(targetWinnerCount, totalParticipants);
+
+      let tempArr = [...rawParticipants];
+      tempArr.sort(() => Math.random() - 0.5);
+      let selectedWinners = tempArr.slice(0, targetWinnerCount);
+
+      let primaryWinner = selectedWinners[0];
+      const winningIndex = rawParticipants.indexOf(primaryWinner);
 
       const participantArc = (Math.PI * 2) / totalParticipants;
       const startAngle = currentAngle;
@@ -555,8 +590,8 @@
           requestAnimationFrame(animateSpin);
         } else {
           isSpinning = false;
-          document.getElementById('live-name').innerText = selectedWinnerName;
-          showWinnerModal(selectedWinnerName);
+          document.getElementById('live-name').innerText = primaryWinner;
+          showWinnerModal(selectedWinners);
         }
       }
 
@@ -573,7 +608,7 @@
 
     const textarea = document.getElementById('participants-input');
     window.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' && document.activeElement !== textarea && document.activeElement !== modalImgInput) {
+      if (e.code === 'Space' && document.activeElement !== textarea && document.activeElement !== modalImgInput && document.activeElement !== winnerCountInput) {
         e.preventDefault();
         if (isModalOpen) {
           closeWinnerModal();
@@ -599,14 +634,39 @@
       }, 250);
     }
 
-    function showWinnerModal(winnerName) {
+    // PENUTUPAN PEMENANG YANG DIBUAT SANGAT KREATIF TANPA NOMOR INDEX
+    function showWinnerModal(winnersArray) {
       isModalOpen = true;
       triggerGrandFireworks();
       
-      document.getElementById('winner-name').innerText = winnerName;
+      const winnerContainer = document.getElementById('winner-container');
+      winnerContainer.innerHTML = '';
+
+      if (winnersArray.length === 1) {
+        winnerContainer.innerHTML = `
+          <div class="winner-badge py-4 px-8 rounded-2xl border-4 border-[#00f6ff] shadow-[0_0_30px_#00f6ff]">
+            <h1 class="font-mono text-4xl md:text-5xl font-black text-white neon-text-cyan tracking-wider">${winnersArray[0]}</h1>
+          </div>
+        `;
+      } else {
+        const textGlows = ["neon-text-cyan", "neon-text-pink", "neon-text-yellow"];
+        
+        winnersArray.forEach((winner, idx) => {
+          const glowColor = textGlows[idx % textGlows.length];
+          const badgeHTML = `
+            <div class="winner-badge py-2.5 px-5 rounded-xl border-2 border-[#00f6ff] flex items-center justify-center gap-2" style="animation-delay: ${idx * 0.08}s">
+              <span class="text-xs">⭐</span>
+              <span class="font-mono text-lg md:text-xl font-black text-white ${glowColor} tracking-wider">${winner}</span>
+              <span class="text-xs">⭐</span>
+            </div>
+          `;
+          winnerContainer.insertAdjacentHTML('beforeend', badgeHTML);
+        });
+      }
+
       winnerModal.classList.remove('hidden');
 
-      rawParticipants = rawParticipants.filter(p => p !== winnerName);
+      rawParticipants = rawParticipants.filter(p => !winnersArray.includes(p));
       textarea.value = rawParticipants.join('\n');
       document.getElementById('count-display').innerText = rawParticipants.length;
       updateSectors();
@@ -618,7 +678,6 @@
       winnerModal.classList.add('hidden');
     }
 
-    // INITIALIZATION DENGAN NAMA PESERTA HARCODED
     textarea.value = rawParticipants.join('\n');
     document.getElementById('count-display').innerText = rawParticipants.length;
     updateSectors();
